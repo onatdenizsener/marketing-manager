@@ -1,0 +1,49 @@
+# Lokal geliştirme için: Postgres + n8n
+# docker compose up -d
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: sportagent
+      POSTGRES_PASSWORD: devpass
+      POSTGRES_DB: sportagent
+    ports:
+      - "5432:5432"
+    volumes:
+      - sportagent_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sportagent"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  n8n:
+    image: n8nio/n8n:latest
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - WEBHOOK_BACKEND_URL=http://host.docker.internal:8000
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=db
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=sportagent
+      - DB_POSTGRESDB_USER=sportagent
+      - DB_POSTGRESDB_PASSWORD=devpass
+      - GENERIC_TIMEZONE=Europe/Istanbul
+      - TZ=Europe/Istanbul
+    volumes:
+      - sportagent_n8n_data:/home/node/.n8n
+    depends_on:
+      db:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  sportagent_pgdata:
+  sportagent_n8n_data:

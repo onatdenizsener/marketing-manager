@@ -1,0 +1,126 @@
+{
+  "name": "Sport Trends Daily Ingestion",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{"field": "cronExpression", "expression": "0 7 * * *"}]
+        }
+      },
+      "id": "cron-trigger",
+      "name": "Cron 07:00 TR",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://feeds.bbci.co.uk/sport/football/rss.xml",
+        "options": {"timeout": 30000}
+      },
+      "id": "rss-bbc-football",
+      "name": "RSS BBC Football",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1,
+      "position": [480, 100]
+    },
+    {
+      "parameters": {
+        "url": "https://www.goal.com/feeds/news",
+        "options": {"timeout": 30000}
+      },
+      "id": "rss-goal",
+      "name": "RSS Goal",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1,
+      "position": [480, 200]
+    },
+    {
+      "parameters": {
+        "url": "https://www.aa.com.tr/tr/rss/default?cat=spor",
+        "options": {"timeout": 30000}
+      },
+      "id": "rss-aa-spor",
+      "name": "RSS AA Spor",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://www.reddit.com/r/soccer/top.rss?t=day",
+        "options": {
+          "timeout": 30000,
+          "headers": {"User-Agent": "SportTrendsAgent/1.0"}
+        }
+      },
+      "id": "reddit-soccer",
+      "name": "Reddit r/soccer",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [480, 400]
+    },
+    {
+      "parameters": {
+        "url": "https://www.reddit.com/r/3Dprinting/top.rss?t=day",
+        "options": {
+          "timeout": 30000,
+          "headers": {"User-Agent": "SportTrendsAgent/1.0"}
+        }
+      },
+      "id": "reddit-3dprinting",
+      "name": "Reddit r/3Dprinting",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [480, 500]
+    },
+    {
+      "parameters": {
+        "url": "https://www.reddit.com/r/SoccerJerseys/top.rss?t=day",
+        "options": {
+          "timeout": 30000,
+          "headers": {"User-Agent": "SportTrendsAgent/1.0"}
+        }
+      },
+      "id": "reddit-soccerjerseys",
+      "name": "Reddit r/SoccerJerseys",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [480, 600]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.WEBHOOK_BACKEND_URL}}/admin/synthesize",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {"name": "Authorization", "value": "Bearer {{$env.APP_BEARER_TOKEN}}"},
+            {"name": "Content-Type", "value": "application/json"}
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={ \"trigger\": \"n8n_cron\", \"timestamp\": \"{{$now.toISO()}}\" }",
+        "options": {"timeout": 120000}
+      },
+      "id": "callback-backend",
+      "name": "Callback Backend Synthesize",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1000, 400]
+    }
+  ],
+  "connections": {
+    "Cron 07:00 TR": {"main": [[
+      {"node": "RSS BBC Football", "type": "main", "index": 0},
+      {"node": "RSS Goal", "type": "main", "index": 0},
+      {"node": "RSS AA Spor", "type": "main", "index": 0},
+      {"node": "Reddit r/soccer", "type": "main", "index": 0},
+      {"node": "Reddit r/3Dprinting", "type": "main", "index": 0},
+      {"node": "Reddit r/SoccerJerseys", "type": "main", "index": 0}
+    ]]},
+    "RSS BBC Football": {"main": [[{"node": "Callback Backend Synthesize", "type": "main", "index": 0}]]}
+  },
+  "settings": {"executionOrder": "v1"}
+}
